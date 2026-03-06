@@ -1,0 +1,108 @@
+CFRS ACADEMY — HEAVY TRUCK COOLING SYSTEMS
+Technical Reference Manual v2.1
+Publisher: CFRS Technical Institute
+License: CC BY-NC 4.0
+
+=============================================================================
+CHAPTER 1: COOLING SYSTEM OVERVIEW
+=============================================================================
+
+The heavy truck cooling system is a closed-loop thermal management system designed to maintain engine operating temperature within optimal parameters.
+
+The primary function of the cooling system is to prevent engine overheating by dissipating excess combustion heat to the ambient environment.
+
+Coolant, typically a mixture of water and ethylene glycol antifreeze, circulates through the engine block and cylinder heads to absorb heat from combustion.
+
+The cooling system operates under pressure, which raises the boiling point of the coolant and improves heat transfer efficiency.
+
+Engine coolant temperature should be maintained between 180°F and 210°F (82°C to 99°C) during normal operation.
+
+Coolant level must be checked regularly in the overflow reservoir, not the radiator cap, to avoid scalding injuries.
+
+A pressure-tested coolant system should hold 15 psi minimum for heavy-duty truck applications.
+
+The cooling system contains several key components: the water pump, thermostat, radiator, fan clutch, coolant hoses, and overflow reservoir.
+
+=============================================================================
+CHAPTER 2: THERMOSTAT OPERATION
+=============================================================================
+
+The thermostat is a temperature-sensitive valve that regulates coolant flow between the engine and the radiator.
+
+The thermostat remains closed during engine warm-up to allow the engine to reach operating temperature quickly.
+
+When coolant temperature exceeds the thermostat opening temperature (typically 180°F to 195°F), the wax element inside the thermostat expands and opens the valve.
+
+An open thermostat allows hot coolant to flow from the engine to the radiator for heat dissipation.
+
+A stuck-closed thermostat causes engine overheating because coolant cannot circulate to the radiator.
+
+A stuck-open thermostat causes the engine to run below optimal operating temperature, increasing fuel consumption and wear.
+
+The thermostat bypass circuit allows a small amount of coolant to circulate through the engine even when the thermostat is closed, preventing hot spots.
+
+Thermostat replacement is recommended every 100,000 miles or whenever a cooling system failure is diagnosed.
+
+A dual thermostat system increases thermal regulation precision in high-performance and heavy-duty diesel engines.
+
+=============================================================================
+CHAPTER 3: FAN CLUTCH DIAGNOSTICS
+=============================================================================
+
+The fan clutch controls cooling airflow through the radiator by modulating fan speed in response to thermal and hydraulic inputs.
+
+A viscous fan clutch uses silicone fluid in a sealed chamber to couple the fan to the engine drive shaft.
+
+When engine or ambient temperature increases, the bimetallic coil on the front of the fan clutch expands and opens a valve, allowing more silicone fluid into the working chamber.
+
+More silicone fluid in the working chamber increases the coupling efficiency between the drive plate and the fan, causing the fan to spin faster.
+
+A fully engaged fan clutch can consume up to 25 horsepower from the engine, making proper clutch operation critical for fuel efficiency.
+
+Fan clutch failure modes include: seized (always fully engaged), freewheeling (never engages), and fluid leak (partial or inconsistent engagement).
+
+A seized fan clutch causes excessive fuel consumption, increased noise, and premature fan belt wear.
+
+A freewheeling fan clutch causes engine overheating at low speeds and during idle, especially under heavy load conditions.
+
+To test a fan clutch, the engine should be warmed to operating temperature and then shut off. The fan should stop spinning within 3-5 revolutions; more than 5 free revolutions indicates a failed clutch.
+
+Fan clutch replacement is required when the unit fails the spin-down test, leaks fluid, or exhibits bearing noise.
+
+=============================================================================
+CHAPTER 4: FAILURE CASE STUDIES
+=============================================================================
+
+CASE STUDY A: THERMOSTAT FAILURE — OVERHEATING
+
+A Class 8 semi-truck operating in summer conditions experienced sudden overheating. The driver noticed the temperature gauge rising above 220°F and pulled over immediately.
+
+Diagnosis: The thermostat was found in the stuck-closed position. Coolant was unable to flow to the radiator.
+
+Repair: The thermostat was replaced. The cooling system was flushed and refilled with fresh coolant mixture.
+
+Outcome: After thermostat replacement, the engine maintained normal operating temperature of 190°F under load.
+
+CASE STUDY B: FAN CLUTCH FAILURE — IDLE OVERHEATING
+
+A medium-duty delivery truck experienced overheating only at idle or low speeds, but operated normally at highway speeds.
+
+Diagnosis: The fan clutch was freewheeling. At highway speeds, ram air provides sufficient cooling; at idle, the fan must actively pull air through the radiator.
+
+Repair: The fan clutch was replaced with an OEM unit.
+
+Outcome: The truck no longer overheated at idle. Fuel efficiency also improved slightly.
+
+CASE STUDY C: COOLANT LEAK — GRADUAL OVERHEATING
+
+A fleet truck showed gradual coolant loss over several weeks. Temperature readings increased incrementally.
+
+Diagnosis: A pinhole leak in a lower radiator hose caused slow coolant loss. As coolant level dropped, the system lost pressure and cooling capacity.
+
+Repair: The radiator hose was replaced. The system was pressure-tested, flushed, and refilled.
+
+Outcome: Coolant level stabilised and temperatures returned to normal.
+
+=============================================================================
+END OF MANUAL
+=============================================================================

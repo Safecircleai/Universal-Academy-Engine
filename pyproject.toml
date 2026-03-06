@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "universal-academy-engine"
+version = "0.1.0"
+description = "A governed, source-verified educational knowledge infrastructure"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Safecircle AI", email = "info@safecircle.ai"}
+]
+keywords = ["education", "knowledge-graph", "curriculum", "AI", "verified-learning"]
+
+[project.urls]
+Homepage = "https://github.com/Safecircleai/Universal-Academy-Engine"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["core", "agents", "api"]
+omit = ["tests/*", "examples/*"]

@@ -1,0 +1,1 @@
+"""UAE REST API package."""
