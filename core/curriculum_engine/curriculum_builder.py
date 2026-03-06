@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.schemas.models import (
-    Claim, ClaimStatus, Course, Lesson, LessonClaim, Module, QuizQuestion
+    Claim, ClaimStatus, Course, Lesson, LessonClaim, Module, PublishingState, QuizQuestion
 )
 
 logger = logging.getLogger(__name__)
@@ -98,8 +98,64 @@ class CurriculumBuilder:
         course = await self.retrieve_course(course_id)
         await self._assert_course_integrity(course)
         course.is_published = True
+        course.publishing_state = PublishingState.PUBLISHED
+        from datetime import datetime
+        course.published_at = datetime.utcnow()
         await self.session.flush()
         logger.info("Published course %s", course_id)
+        return course
+
+    async def approve_course(
+        self, course_id: str, *, approved_by: str
+    ) -> Course:
+        """
+        Advance a course from VERIFIED → APPROVED state.
+
+        Required by nodes whose governance policy mandates human sign-off
+        before publication (``require_approval_to_publish = True``).
+        """
+        from datetime import datetime
+        course = await self.retrieve_course(course_id)
+        if course.publishing_state not in (
+            PublishingState.DRAFT, PublishingState.VERIFIED
+        ):
+            raise CurriculumError(
+                f"Course is in state {course.publishing_state.value!r} and cannot be approved."
+            )
+        await self._assert_course_integrity(course)
+        course.publishing_state = PublishingState.APPROVED
+        course.approved_by = approved_by
+        course.approved_at = datetime.utcnow()
+        await self.session.flush()
+        logger.info("Course %s approved by %s", course_id, approved_by)
+        return course
+
+    async def supersede_course(
+        self, old_course_id: str, new_course_id: str
+    ) -> Course:
+        """Mark old_course as superseded by new_course."""
+        old_course = await self.retrieve_course(old_course_id)
+        new_course = await self.retrieve_course(new_course_id)
+        old_course.publishing_state = PublishingState.SUPERSEDED
+        old_course.superseded_by_id = new_course_id
+        await self.session.flush()
+        logger.info("Course %s superseded by %s", old_course_id, new_course_id)
+        return old_course
+
+    async def deprecate_course(self, course_id: str) -> Course:
+        """Deprecate a course — it remains readable but is no longer recommended."""
+        course = await self.retrieve_course(course_id)
+        course.publishing_state = PublishingState.DEPRECATED
+        course.is_published = False
+        await self.session.flush()
+        return course
+
+    async def archive_course(self, course_id: str) -> Course:
+        """Archive a course — preserved but fully inactive."""
+        course = await self.retrieve_course(course_id)
+        course.publishing_state = PublishingState.ARCHIVED
+        course.is_published = False
+        await self.session.flush()
         return course
 
     # ------------------------------------------------------------------

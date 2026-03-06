@@ -9,7 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database.connection import init_db
-from api.routes import sources, claims, courses, knowledge_graph, verification
+from api.routes import (
+    sources, claims, courses, knowledge_graph, verification,
+    nodes, attestations, competencies, credentials, audit,
+)
 
 
 @asynccontextmanager
@@ -47,15 +50,27 @@ app.include_router(claims.router, prefix=PREFIX)
 app.include_router(courses.router, prefix=PREFIX)
 app.include_router(knowledge_graph.router, prefix=PREFIX)
 app.include_router(verification.router, prefix=PREFIX)
+# v2 — Federation & hardening
+app.include_router(nodes.router, prefix=PREFIX)
+app.include_router(attestations.router, prefix=PREFIX)
+app.include_router(competencies.router, prefix=PREFIX)
+app.include_router(credentials.router, prefix=PREFIX)
+app.include_router(audit.router, prefix=PREFIX)
 
 
 @app.get("/", tags=["Health"])
 async def root():
     return {
         "name": settings.app_name,
-        "version": settings.app_version,
+        "version": "2.0.0",
         "status": "running",
         "docs": "/docs",
+        "features": [
+            "source-registry", "claim-ledger", "knowledge-graph",
+            "curriculum-engine", "verification-engine",
+            "federation", "cryptographic-attestations",
+            "competency-mapping", "credential-issuance", "audit-transparency",
+        ],
     }
 
 
