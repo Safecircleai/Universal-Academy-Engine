@@ -10,11 +10,15 @@ from config import settings
 from database.schemas.models import Base
 
 
+# SQLite requires check_same_thread=False; PostgreSQL does not accept it
+_is_sqlite = settings.database_url.startswith("sqlite")
+
 # Async engine (used by FastAPI routes)
 async_engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
-    connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    pool_pre_ping=True,
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -28,7 +32,8 @@ AsyncSessionLocal = async_sessionmaker(
 # Sync engine (used by Alembic migrations and scripts)
 sync_engine = create_engine(
     settings.database_sync_url,
-    connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    pool_pre_ping=True,
     echo=settings.debug,
 )
 
