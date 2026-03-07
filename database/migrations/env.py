@@ -19,7 +19,17 @@ from config import settings
 from database.schemas.models import Base
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+
+# Ensure the URL uses the asyncpg driver for async migrations.
+# Railway (and many providers) inject DATABASE_URL as postgresql:// or
+# postgres://, neither of which is accepted by SQLAlchemy's asyncio extension.
+_db_url = settings.database_url
+for _sync_scheme in ("postgresql://", "postgres://", "postgresql+psycopg2://"):
+    if _db_url.startswith(_sync_scheme):
+        _db_url = "postgresql+asyncpg://" + _db_url[len(_sync_scheme):]
+        break
+
+config.set_main_option("sqlalchemy.url", _db_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
