@@ -16,4 +16,4 @@ COPY . .
 # Railway injects $PORT at runtime
 ENV API_PORT=8000
 
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-$API_PORT}"]
+CMD ["sh", "-c", "alembic -c database/migrations/alembic.ini upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-$API_PORT}"]
