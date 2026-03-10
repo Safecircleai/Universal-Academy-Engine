@@ -252,12 +252,27 @@ _ALLOWED_TRANSITIONS: dict[ClaimStatus, set[ClaimStatus]] = {
         ClaimStatus.VERIFIED,
         ClaimStatus.CONTESTED,
         ClaimStatus.DEPRECATED,
+        ClaimStatus.CONSTITUTIONAL_REVIEW_REQUIRED,
     },
     ClaimStatus.VERIFIED: {
         ClaimStatus.CONTESTED,
         ClaimStatus.DEPRECATED,
+        ClaimStatus.CONSTITUTIONAL_REVIEW_REQUIRED,
     },
     ClaimStatus.CONTESTED: {
+        ClaimStatus.VERIFIED,
+        ClaimStatus.DEPRECATED,
+        ClaimStatus.CONSTITUTIONAL_REVIEW_REQUIRED,
+    },
+    ClaimStatus.CONSTITUTIONAL_REVIEW_REQUIRED: {
+        ClaimStatus.CONSTITUTIONAL_REVIEW_IN_PROGRESS,
+        ClaimStatus.DEPRECATED,
+    },
+    ClaimStatus.CONSTITUTIONAL_REVIEW_IN_PROGRESS: {
+        ClaimStatus.CONSTITUTIONAL_DECISION_RECORDED,
+        ClaimStatus.DEPRECATED,
+    },
+    ClaimStatus.CONSTITUTIONAL_DECISION_RECORDED: {
         ClaimStatus.VERIFIED,
         ClaimStatus.DEPRECATED,
     },

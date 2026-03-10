@@ -24,6 +24,11 @@ class Role(str, Enum):
     REVIEWER = "reviewer"
     ISSUER = "issuer"
     CURRICULUM_OPERATOR = "curriculum_operator"
+    # v4 doctrine roles
+    DOCTRINE_STEWARD = "doctrine_steward"
+    CONSTITUTIONAL_REVIEWER = "constitutional_reviewer"
+    GOVERNANCE_COUNCIL = "governance_council"
+    # Peer / service roles
     FEDERATION_NODE = "federation_node"
     ADMIN = "admin"
 
@@ -35,6 +40,9 @@ ROLE_HIERARCHY = [
     Role.REVIEWER,
     Role.ISSUER,
     Role.CURRICULUM_OPERATOR,
+    Role.DOCTRINE_STEWARD,
+    Role.CONSTITUTIONAL_REVIEWER,
+    Role.GOVERNANCE_COUNCIL,
     Role.ADMIN,
 ]
 
@@ -68,6 +76,9 @@ ROLE_DESCRIPTIONS = {
     Role.REVIEWER: "Auditor + can verify claims and submit attestations.",
     Role.ISSUER: "Reviewer + can issue and revoke credentials.",
     Role.CURRICULUM_OPERATOR: "Issuer + can create/publish courses and manage curriculum.",
+    Role.DOCTRINE_STEWARD: "Curriculum operator + can manage doctrine source classification and precedence.",
+    Role.CONSTITUTIONAL_REVIEWER: "Doctrine steward + can conduct constitutional reviews of claims.",
+    Role.GOVERNANCE_COUNCIL: "Constitutional reviewer + can record final governance decisions.",
     Role.FEDERATION_NODE: "Service account for inter-node federation transport.",
     Role.ADMIN: "Full access to all operations including node management.",
 }

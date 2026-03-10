@@ -1,19 +1,21 @@
 """
-UAE v3 — Base Worker
+UAE v3/v4 — Base Worker
 
-Enhanced base class for UAE v3 agent workers.
+Enhanced base class for UAE agent workers.
 Extends BaseAgent with:
   - LLM client integration
   - Structured output validation
   - Source ID and output hash logging for audit
   - Governance checkpoint enforcement (no direct verified-claim writes)
   - Explicit review_requirement flag on all outputs
+  - v4 doctrine safeguards: constitutional review detection
 
-All workers MUST inherit from BaseWorker and call _complete_with_review()
+All workers MUST inherit from BaseWorker and call _route_for_review()
 rather than writing directly to claims or curriculum tables.
 
-The governance invariant is encoded here:
+Governance invariants encoded here:
   "No agent output directly becomes verified truth without a review path."
+  "No agent may propose doctrine overrides without constitutional review."
 """
 
 from __future__ import annotations
@@ -29,7 +31,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.llm_client import LLMClient, LLMResponse, get_llm_client
 from core.governance import GovernanceManager
-from database.schemas.models import AgentRun
+from database.schemas.models import AgentRun, ClaimClassification, SourceType
+
+# v4 doctrine: classifications that an agent may NEVER autonomously propose
+# without triggering a mandatory constitutional review path.
+_DOCTRINE_RESTRICTED_CLASSIFICATIONS = {
+    ClaimClassification.CONFLICTS_WITH,
+    ClaimClassification.SUPERSEDES,
+}
+
+# v4 doctrine: source types that require constitutional review if an agent
+# proposes changes to claims from these tiers.
+_DOCTRINE_PROTECTED_SOURCE_TYPES = {
+    SourceType.IMMUTABLE_CORE,
+    SourceType.CONSTITUTIONAL_DOCTRINE,
+    SourceType.GOVERNANCE_SPEC,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -134,3 +151,67 @@ class BaseWorker:
             "agent_name": self.name,
             "data": proposal,
         }
+
+    def _check_doctrine_safeguards(
+        self,
+        proposal: dict,
+        *,
+        claim_classification: Optional[str] = None,
+        source_type: Optional[str] = None,
+    ) -> dict:
+        """
+        v4 Doctrine safeguard: detect if a proposal attempts to override
+        protected doctrine and inject constitutional_review_required flag.
+
+        Agents MUST call this before returning any proposal that involves
+        claim classification or source type metadata.
+
+        Args:
+            proposal: The proposal dict to annotate.
+            claim_classification: Optional ClaimClassification value string.
+            source_type: Optional SourceType value string.
+
+        Returns:
+            The (possibly annotated) proposal dict.
+        """
+        requires_constitutional_review = False
+        doctrine_review_reason = ""
+
+        # Check classification-based restrictions
+        if claim_classification:
+            try:
+                cls = ClaimClassification(claim_classification)
+                if cls in _DOCTRINE_RESTRICTED_CLASSIFICATIONS:
+                    requires_constitutional_review = True
+                    doctrine_review_reason = (
+                        f"Agent proposed classification {claim_classification!r} — "
+                        "this classification requires mandatory constitutional review "
+                        "and may not be autonomously enacted."
+                    )
+            except ValueError:
+                pass  # unknown classification — allow to pass through to validation
+
+        # Check source-type-based restrictions
+        if source_type and not requires_constitutional_review:
+            try:
+                st = SourceType(source_type)
+                if st in _DOCTRINE_PROTECTED_SOURCE_TYPES:
+                    requires_constitutional_review = True
+                    doctrine_review_reason = (
+                        f"Agent proposed modification to {source_type!r} doctrine — "
+                        "protected source types require constitutional review."
+                    )
+            except ValueError:
+                pass
+
+        if requires_constitutional_review:
+            proposal["requires_constitutional_review"] = True
+            proposal["doctrine_review_reason"] = doctrine_review_reason
+            logger.warning(
+                "Worker %s: constitutional review required — %s",
+                self.name, doctrine_review_reason,
+            )
+        else:
+            proposal.setdefault("requires_constitutional_review", False)
+
+        return proposal

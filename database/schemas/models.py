@@ -52,6 +52,33 @@ class ClaimStatus(str, PyEnum):
     VERIFIED = "verified"
     CONTESTED = "contested"
     DEPRECATED = "deprecated"
+    # v4 constitutional review workflow
+    CONSTITUTIONAL_REVIEW_REQUIRED = "constitutional_review_required"
+    CONSTITUTIONAL_REVIEW_IN_PROGRESS = "constitutional_review_in_progress"
+    CONSTITUTIONAL_DECISION_RECORDED = "constitutional_decision_recorded"
+
+
+class SourceType(str, PyEnum):
+    """v4 — Doctrine source classification (highest → lowest precedence)."""
+    IMMUTABLE_CORE = "immutable_core"                  # Foundational, never overridden
+    CONSTITUTIONAL_DOCTRINE = "constitutional_doctrine"  # Organisation constitution
+    GOVERNANCE_SPEC = "governance_spec"                # Governance procedures
+    TECHNICAL_SPEC = "technical_spec"                  # Technical standards
+    IMPLEMENTATION_SPEC = "implementation_spec"        # Implementation guides
+    COMMENTARY = "commentary"                          # Expert commentary / analysis
+    CURRICULUM = "curriculum"                          # Curriculum / training material
+    EXTERNAL_REFERENCE = "external_reference"          # External / third-party reference
+
+
+class ClaimClassification(str, PyEnum):
+    """v4 — Semantic relationship of a claim to the doctrine hierarchy."""
+    REINFORCES = "reinforces"              # Supports existing doctrine
+    CLARIFIES = "clarifies"               # Adds precision to existing doctrine
+    OPERATIONALIZES = "operationalizes"   # Provides implementation of doctrine
+    EXTENDS = "extends"                   # Adds new domain to existing doctrine
+    CONFLICTS_WITH = "conflicts_with"     # Contradicts existing doctrine
+    SUPERSEDES = "supersedes"             # Replaces existing doctrine
+    DEPRECATED_BY = "deprecated_by"       # Replaced by another claim
 
 
 class ClaimCategory(str, PyEnum):
@@ -311,6 +338,8 @@ class Source(Base):
     storage_backend = Column(Enum(StorageBackend), nullable=False, default=StorageBackend.LOCAL)
     # Metadata
     trust_tier = Column(Enum(TrustTier), nullable=False, default=TrustTier.TIER3)
+    # v4 doctrine classification
+    source_type = Column(Enum(SourceType), nullable=False, default=SourceType.EXTERNAL_REFERENCE)
     license = Column(String(256), nullable=True)
     source_url = Column(Text, nullable=True)
     file_path = Column(Text, nullable=True)
@@ -490,6 +519,10 @@ class Claim(Base):
     claim_hash = Column(String(128), nullable=True, index=True)  # SHA-256 of statement
     version = Column(Integer, nullable=False, default=1)
     superseded_by_id = Column(String(36), ForeignKey("claims.claim_id"), nullable=True)
+    # v4 doctrine fields
+    claim_classification = Column(Enum(ClaimClassification), nullable=True)
+    requires_constitutional_review = Column(Boolean, nullable=False, default=False)
+    doctrine_dependency = Column(JSON, nullable=True)   # {source_type, precedence_level, dependency_ids}
     created_at = Column(DateTime, nullable=False, default=_now)
     updated_at = Column(DateTime, nullable=False, default=_now, onupdate=_now)
 
@@ -972,3 +1005,87 @@ class AgentRun(Base):
     input_source_ids = Column(JSON, nullable=True)          # source IDs fed to LLM
     output_hash = Column(String(64), nullable=True)         # SHA-256 of output JSON
     requires_review = Column(Boolean, nullable=False, default=True)  # governance flag
+
+
+# ===========================================================================
+# v4 — Doctrine Sovereignty Layer
+# ===========================================================================
+
+class GovernanceDecision(Base):
+    """
+    v4 — Formal record of a constitutional governance council decision.
+
+    Created when a claim exits the constitutional review workflow.
+    Immutable after creation — decisions are never edited, only superseded.
+    """
+    __tablename__ = "governance_decisions"
+
+    decision_id = Column(String(36), primary_key=True, default=_uuid)
+    claim_id = Column(String(36), ForeignKey("claims.claim_id"), nullable=False, index=True)
+    node_id = Column(String(36), ForeignKey("academy_nodes.node_id"), nullable=True, index=True)
+    # Review participants
+    reviewers = Column(JSON, nullable=False, default=list)   # list of reviewer IDs
+    # Decision content
+    decision_type = Column(String(64), nullable=False)       # approve / reject / defer / modify
+    decision_summary = Column(Text, nullable=False)
+    evidence_sources = Column(JSON, nullable=True)           # list of source_ids used as evidence
+    final_outcome = Column(Text, nullable=True)              # human-readable outcome narrative
+    # Doctrine metadata
+    doctrine_precedence_invoked = Column(String(64), nullable=True)  # which precedence level ruled
+    conflict_resolution_method = Column(String(128), nullable=True)  # how conflict was resolved
+    timestamp = Column(DateTime, nullable=False, default=_now)
+    recorded_by = Column(String(256), nullable=False, default="system")
+
+    __table_args__ = (
+        Index("ix_governance_decision_claim", "claim_id"),
+        Index("ix_governance_decision_node", "node_id"),
+    )
+
+    def __repr__(self):
+        return f"<GovernanceDecision(decision_id={self.decision_id!r}, claim_id={self.claim_id!r})>"
+
+
+class InstitutionalArchiveEntry(Base):
+    """
+    v4 — Immutable institutional memory record.
+
+    Every significant knowledge evolution event is recorded here:
+    - Claim status transitions involving doctrine
+    - GovernanceDecision creation
+    - Source type reclassification
+    - Constitutional review triggers and outcomes
+
+    Archive entries are write-once; no UPDATE or DELETE is permitted
+    by the application layer.
+    """
+    __tablename__ = "institutional_archive"
+
+    entry_id = Column(String(36), primary_key=True, default=_uuid)
+    # Event metadata
+    event_type = Column(String(128), nullable=False, index=True)
+    # e.g. claim_status_transition, governance_decision, source_reclassification,
+    #      constitutional_review_triggered, doctrine_conflict_detected
+    subject_id = Column(String(36), nullable=False, index=True)   # claim_id, source_id, etc.
+    subject_type = Column(String(64), nullable=False)             # claim / source / course / node
+    node_id = Column(String(36), ForeignKey("academy_nodes.node_id"), nullable=True, index=True)
+    actor_id = Column(String(256), nullable=True)                 # user or agent that triggered event
+    # Event content
+    event_summary = Column(Text, nullable=False)
+    evidence_payload = Column(JSON, nullable=True)                # arbitrary JSON evidence
+    preceding_state = Column(JSON, nullable=True)                 # state before the event
+    resulting_state = Column(JSON, nullable=True)                 # state after the event
+    # Integrity
+    content_hash = Column(String(128), nullable=True)             # SHA-256 of canonical entry JSON
+    timestamp = Column(DateTime, nullable=False, default=_now, index=True)
+
+    __table_args__ = (
+        Index("ix_archive_event_type", "event_type"),
+        Index("ix_archive_subject", "subject_id", "subject_type"),
+        Index("ix_archive_timestamp", "timestamp"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<InstitutionalArchiveEntry(entry_id={self.entry_id!r}, "
+            f"event_type={self.event_type!r}, subject_id={self.subject_id!r})>"
+        )

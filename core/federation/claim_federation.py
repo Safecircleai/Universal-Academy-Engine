@@ -29,8 +29,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.schemas.models import (
     AcademyNode, Claim, ClaimCategory, ClaimStatus,
-    FederatedClaimRecord, NodeGovernancePolicy
+    FederatedClaimRecord, NodeGovernancePolicy, Source
 )
+from core.doctrine.conflict_detector import ConflictDetector
+from core.doctrine.precedence_engine import PrecedenceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +133,48 @@ class ClaimFederationProtocol:
                 f"Node {importing_node_id!r} already owns this claim — import is not needed."
             )
 
+        # v4 Doctrine checks: detect precedence violations and flag claims
+        # that require constitutional review before import is finalised.
+        doctrine_flags: list = []
+        if claim.claim_classification is not None:
+            source_type = await self._get_claim_source_type(claim)
+            if source_type is not None:
+                detector = ConflictDetector(self.session)
+                doctrine_flags = await detector.check_federation_import(
+                    incoming_claim_id=claim_id,
+                    incoming_source_type=source_type,
+                    classification=claim.claim_classification,
+                    origin_node_id=claim.origin_node_id or "unknown",
+                    local_node_id=importing_node_id,
+                )
+                if any(f.requires_constitutional_review for f in doctrine_flags):
+                    # Tag the claim for review — do not block import, but flag it
+                    claim.requires_constitutional_review = True
+                    logger.warning(
+                        "Claim %s flagged for constitutional review on import to node %s: %d conflict(s)",
+                        claim.claim_number, importing_node_id, len(doctrine_flags),
+                    )
+
+        snapshot = _claim_snapshot(claim)
+        if doctrine_flags:
+            snapshot["doctrine_flags"] = [
+                {
+                    "conflict_id": f.conflict_id,
+                    "conflict_type": f.conflict_type,
+                    "severity": f.severity,
+                    "description": f.description,
+                    "requires_constitutional_review": f.requires_constitutional_review,
+                }
+                for f in doctrine_flags
+            ]
+
         record = FederatedClaimRecord(
             claim_id=claim_id,
             action="import",
             source_node_id=claim.publishing_node_id or claim.origin_node_id or importing_node_id,
             target_node_id=importing_node_id,
             notes=notes,
-            payload=_claim_snapshot(claim),
+            payload=snapshot,
         )
         self.session.add(record)
         await self.session.flush()
@@ -293,6 +330,12 @@ class ClaimFederationProtocol:
             raise FederationError(
                 f"Node {node_id!r} governance policy does not permit claim publication."
             )
+
+    async def _get_claim_source_type(self, claim: Claim):
+        """Return the SourceType of a claim's source, or None."""
+        stmt = select(Source.source_type).where(Source.source_id == claim.source_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def _assert_node_allows_import(self, node_id: str) -> None:
         stmt = select(NodeGovernancePolicy).where(NodeGovernancePolicy.node_id == node_id)

@@ -68,6 +68,22 @@ PERMISSION_REGISTRY: dict[str, Role] = {
     "federation:transport:receive": Role.FEDERATION_NODE,
     "federation:transport:handshake": Role.FEDERATION_NODE,
 
+    # v4 Doctrine governance
+    "doctrine:source_type:read": Role.READ_ONLY,
+    "doctrine:source_type:classify": Role.DOCTRINE_STEWARD,
+    "doctrine:precedence:read": Role.READ_ONLY,
+    "doctrine:precedence:override": Role.GOVERNANCE_COUNCIL,
+    "doctrine:conflict:read": Role.AUDITOR,
+    "doctrine:conflict:resolve": Role.CONSTITUTIONAL_REVIEWER,
+    "doctrine:dependency:read": Role.AUDITOR,
+    "doctrine:constitutional_review:trigger": Role.DOCTRINE_STEWARD,
+    "doctrine:constitutional_review:conduct": Role.CONSTITUTIONAL_REVIEWER,
+    "doctrine:constitutional_review:decide": Role.GOVERNANCE_COUNCIL,
+    "doctrine:governance_decision:create": Role.GOVERNANCE_COUNCIL,
+    "doctrine:governance_decision:read": Role.AUDITOR,
+    "doctrine:archive:read": Role.AUDITOR,
+    "doctrine:temporal_view:read": Role.AUDITOR,
+
     # Admin
     "admin:users": Role.ADMIN,
     "admin:keys": Role.ADMIN,
