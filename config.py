@@ -63,6 +63,28 @@ class Settings(BaseSettings):
     require_human_review_above_confidence: float = 0.95
     auto_deprecate_after_days: int = 730  # 2 years
 
+    # v3 — Auth
+    auth_enabled: bool = True
+    jwt_secret: str = "change-me-in-production-minimum-32-bytes"
+    jwt_algorithm: str = "HS256"
+    jwt_ttl_secs: int = 3600
+
+    # v3 — Node identity (for federation)
+    node_id: str = "local-node"
+    node_name: str = "Local UAE Node"
+    node_url: str = "http://localhost:8000"
+
+    # v3 — LLM
+    llm_backend: str = "stub"
+    llm_model_id: str = "claude-sonnet-4-6"
+
+    # v3 — Storage
+    storage_dir: str = "./storage"
+
+    # v3 — Federation transport
+    federation_replay_window_secs: int = 300
+    federation_max_retries: int = 3
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

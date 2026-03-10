@@ -1,5 +1,5 @@
 """
-Universal Academy Engine — FastAPI Application Entry Point
+Universal Academy Engine — FastAPI Application Entry Point (v3)
 """
 
 from contextlib import asynccontextmanager
@@ -13,6 +13,7 @@ from api.routes import (
     sources, claims, courses, knowledge_graph, verification,
     nodes, attestations, competencies, credentials, audit,
 )
+from core.federation.transport_server import router as transport_router
 
 
 @asynccontextmanager
@@ -57,12 +58,15 @@ app.include_router(competencies.router, prefix=PREFIX)
 app.include_router(credentials.router, prefix=PREFIX)
 app.include_router(audit.router, prefix=PREFIX)
 
+# v3 — Federation Transport (inter-node HTTP)
+app.include_router(transport_router, prefix=PREFIX)
+
 
 @app.get("/", tags=["Health"])
 async def root():
     return {
         "name": settings.app_name,
-        "version": "2.0.0",
+        "version": "3.0.0",
         "status": "running",
         "docs": "/docs",
         "features": [
@@ -70,13 +74,34 @@ async def root():
             "curriculum-engine", "verification-engine",
             "federation", "cryptographic-attestations",
             "competency-mapping", "credential-issuance", "audit-transparency",
+            # v3 additions
+            "federation-transport", "jwt-auth", "api-key-auth",
+            "key-management", "content-addressed-storage", "agent-workers",
         ],
     }
 
 
 @app.get("/health", tags=["Health"])
 async def health():
+    """Liveness probe — returns 200 if the process is running."""
     return {"status": "ok"}
+
+
+@app.get("/ready", tags=["Health"])
+async def readiness():
+    """
+    Readiness probe — checks database connectivity.
+    Returns 200 when the node is ready to serve traffic.
+    """
+    from database.connection import async_engine
+    from sqlalchemy import text
+    try:
+        async with async_engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {"status": "ready", "database": "ok"}
+    except Exception as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=f"Database not ready: {exc}")
 
 
 if __name__ == "__main__":
