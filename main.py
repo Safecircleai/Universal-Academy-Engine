@@ -18,8 +18,21 @@ from core.federation.transport_server import router as transport_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialise the database on startup."""
-    await init_db()
+    """
+    Application startup/shutdown.
+
+    create_all is used in dev/test (UAE_ENV=development or sqlite).
+    In production (PostgreSQL), schema is managed by Alembic migrations
+    run before the server starts — init_db is skipped to avoid conflicts.
+    """
+    import os
+    env = os.environ.get("UAE_ENV", "development")
+    db_url = settings.database_url
+    is_sqlite = db_url.startswith("sqlite")
+
+    if is_sqlite or env in ("development", "test"):
+        await init_db()
+    # Production: Alembic ran `upgrade head` before uvicorn started
     yield
 
 
