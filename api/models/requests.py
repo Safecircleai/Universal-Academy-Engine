@@ -22,6 +22,18 @@ class RegisterSourceRequest(BaseModel):
     file_path: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
+    @field_validator("trust_tier")
+    @classmethod
+    def validate_trust_tier(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        valid = {"tier1", "tier2", "tier3"}
+        if v not in valid:
+            raise ValueError(
+                f"Invalid trust_tier {v!r}. Valid values are: {sorted(valid)}"
+            )
+        return v
+
 
 class CreateClaimRequest(BaseModel):
     statement: str = Field(..., min_length=10)
