@@ -76,6 +76,10 @@ class ClaimLedger:
         # Verify the source exists
         await self._assert_source_exists(source_id)
 
+        # Verify the concept exists (if provided)
+        if concept_id is not None:
+            await self._assert_concept_exists(concept_id)
+
         claim_number = await self._next_claim_number()
         claim = Claim(
             statement=statement.strip(),
@@ -210,6 +214,16 @@ class ClaimLedger:
         result = await self.session.execute(stmt)
         if result.scalar_one_or_none() is None:
             raise ClaimLedgerError(f"Source not found: {source_id!r}")
+
+    async def _assert_concept_exists(self, concept_id: str) -> None:
+        stmt = select(Concept.concept_id).where(Concept.concept_id == concept_id)
+        result = await self.session.execute(stmt)
+        if result.scalar_one_or_none() is None:
+            raise ClaimLedgerError(
+                f"Concept not found: {concept_id!r}. "
+                "concept_id must be a UUID from the /api/v1/concepts endpoint, "
+                "not a concept name."
+            )
 
     async def _get_or_raise(self, claim_id: str) -> Claim:
         stmt = select(Claim).where(Claim.claim_id == claim_id)
