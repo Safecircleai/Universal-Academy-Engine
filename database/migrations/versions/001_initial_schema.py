@@ -6,13 +6,20 @@ Create Date: 2026-03-10 00:00:00.000000
 
 This migration creates the canonical UAE schema from models.py.
 Safe to run on a fresh PostgreSQL or SQLite database.
+
+If the tables were already created by SQLAlchemy create_all (pre-Alembic
+deployments), this migration detects that and skips creation — treating
+the existing schema as equivalent to this revision.
+
+To stamp an existing database without re-running DDL:
+    alembic stamp 001_initial_schema
 """
 
 from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = "001_initial_schema"
@@ -21,7 +28,20 @@ branch_labels = None
 depends_on = None
 
 
+def _tables_exist() -> bool:
+    """Return True if the schema was already created (pre-Alembic create_all)."""
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    return inspector.has_table("academy_nodes")
+
+
 def upgrade() -> None:
+    if _tables_exist():
+        # Tables were created by SQLAlchemy create_all before Alembic was
+        # introduced. Skip all DDL — the schema is already equivalent to this
+        # revision. Use `alembic stamp 001_initial_schema` to record this.
+        return
+
     # ------------------------------------------------------------------ #
     # academy_nodes                                                        #
     # ------------------------------------------------------------------ #

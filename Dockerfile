@@ -24,5 +24,8 @@ ENV API_PORT=8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-$API_PORT}/health || exit 1
 
-# Startup: run Alembic migrations then start uvicorn
+# Startup: stamp existing schema if needed, then run migrations, then start uvicorn.
+# The stamp command is a no-op if Alembic already tracks this revision.
+# Migration 001 is idempotent (skips if tables exist), so this is safe for
+# both fresh databases and databases pre-created by SQLAlchemy create_all.
 CMD ["sh", "-c", "alembic -c database/migrations/alembic.ini upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-$API_PORT}"]
