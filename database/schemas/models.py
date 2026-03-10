@@ -552,6 +552,7 @@ class FederatedClaimRecord(Base):
     target_node_id = Column(String(36), ForeignKey("academy_nodes.node_id"), nullable=True)
     notes = Column(Text, nullable=True)
     payload = Column(JSON, nullable=True)             # full claim snapshot at time of action
+    message_signature = Column(Text, nullable=True)  # v3: transport message signature (base64)
     timestamp = Column(DateTime, nullable=False, default=_now)
 
     source_node = relationship("AcademyNode", foreign_keys=[source_node_id])
@@ -722,17 +723,18 @@ class VerificationLog(Base):
 
     claim = relationship("Claim", back_populates="verification_logs")
     attestation = relationship(
-        "VerificationAttestation", back_populates="log",
-        primaryjoin="VerificationLog.log_id == foreign(VerificationAttestation.log_id)",
+        "VerificationAttestation",
+        foreign_keys="[VerificationAttestation.log_id]",
+        back_populates="log",
         uselist=False,
     )
 
 
-# Patch VerificationAttestation to add back-reference
+# Patch VerificationAttestation to add back-references
 VerificationAttestation.claim = relationship("Claim", back_populates="attestations")
 VerificationAttestation.log = relationship(
     "VerificationLog",
-    primaryjoin="VerificationAttestation.log_id == foreign(VerificationLog.log_id)",
+    foreign_keys="[VerificationAttestation.log_id]",
     back_populates="attestation",
     uselist=False,
 )
@@ -964,3 +966,9 @@ class AgentRun(Base):
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=_now)
+    # v3 audit fields — set by BaseWorker
+    model_id = Column(String(128), nullable=True)           # LLM model used
+    prompt_type = Column(String(64), nullable=True)         # prompt category
+    input_source_ids = Column(JSON, nullable=True)          # source IDs fed to LLM
+    output_hash = Column(String(64), nullable=True)         # SHA-256 of output JSON
+    requires_review = Column(Boolean, nullable=False, default=True)  # governance flag

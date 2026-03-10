@@ -1,0 +1,94 @@
+version: "3.9"
+
+# UAE v3 — Multi-Node Federation Demo
+# Runs: PostgreSQL (shared for demo, separate in production) + Node A + Node B
+#
+# In production, each node would have its own PostgreSQL instance.
+# For demo purposes, we use separate databases on the same PostgreSQL server.
+#
+# Usage:
+#   docker-compose -f docker-compose.multi-node.yml up
+#   # Then run: python demo/run_demo.py
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: uae_demo_postgres
+    environment:
+      POSTGRES_USER: uae
+      POSTGRES_PASSWORD: uae_demo_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - uae_demo_postgres:/var/lib/postgresql/data
+      - ./demo/init_databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uae"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  node_a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uae_node_a
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://uae:uae_demo_password@postgres:5432/uae_node_a
+      DATABASE_SYNC_URL: postgresql+psycopg2://uae:uae_demo_password@postgres:5432/uae_node_a
+      UAE_AUTH_ENABLED: "false"
+      UAE_LLM_BACKEND: "stub"
+      UAE_NODE_ID: "node-a"
+      UAE_NODE_NAME: "Node A (Publishing Authority)"
+      UAE_NODE_URL: "http://node_a:8000"
+      UAE_ENV: "demo"
+      UAE_DEV_API_KEY: "demo-node-a-key"
+    ports:
+      - "8001:8000"
+    volumes:
+      - uae_node_a_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  node_b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uae_node_b
+    depends_on:
+      postgres:
+        condition: service_healthy
+      node_a:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://uae:uae_demo_password@postgres:5432/uae_node_b
+      DATABASE_SYNC_URL: postgresql+psycopg2://uae:uae_demo_password@postgres:5432/uae_node_b
+      UAE_AUTH_ENABLED: "false"
+      UAE_LLM_BACKEND: "stub"
+      UAE_NODE_ID: "node-b"
+      UAE_NODE_NAME: "Node B (Importing Authority)"
+      UAE_NODE_URL: "http://node_b:8000"
+      UAE_ENV: "demo"
+      UAE_DEV_API_KEY: "demo-node-b-key"
+    ports:
+      - "8002:8000"
+    volumes:
+      - uae_node_b_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  uae_demo_postgres:
+  uae_node_a_storage:
+  uae_node_b_storage:

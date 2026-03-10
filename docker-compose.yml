@@ -1,0 +1,53 @@
+version: "3.9"
+
+# UAE v3 — Local multi-service development environment
+# Runs: PostgreSQL + UAE Node (single instance)
+# For multi-node demo, see: docker-compose.multi-node.yml
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: uae_postgres
+    environment:
+      POSTGRES_DB: uae_dev
+      POSTGRES_USER: uae
+      POSTGRES_PASSWORD: uae_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - uae_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uae -d uae_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  uae_node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uae_node
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://uae:uae_dev_password@postgres:5432/uae_dev
+      DATABASE_SYNC_URL: postgresql+psycopg2://uae:uae_dev_password@postgres:5432/uae_dev
+      UAE_AUTH_ENABLED: "false"
+      UAE_LLM_BACKEND: "stub"
+      UAE_NODE_KEY_ID: "node-default"
+      UAE_ENV: "development"
+    ports:
+      - "8000:8000"
+    volumes:
+      - uae_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  uae_postgres_data:
+  uae_storage:
