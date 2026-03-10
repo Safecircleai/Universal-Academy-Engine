@@ -44,6 +44,12 @@ async def register_source(
 
     try:
         tier = TrustTier(body.trust_tier) if body.trust_tier else TrustTier.TIER3
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid trust_tier {body.trust_tier!r}. Valid values: tier1, tier2, tier3",
+        )
+    try:
         source = await registry.register_source(
             title=body.title,
             publisher=body.publisher,
@@ -72,7 +78,13 @@ async def list_sources(
 ):
     """List registered sources with optional filtering."""
     registry = SourceRegistry(session)
-    tier = TrustTier(trust_tier) if trust_tier else None
+    try:
+        tier = TrustTier(trust_tier) if trust_tier else None
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid trust_tier {trust_tier!r}. Valid values: tier1, tier2, tier3",
+        )
     sources = await registry.list_sources(
         trust_tier=tier,
         publisher=publisher,
