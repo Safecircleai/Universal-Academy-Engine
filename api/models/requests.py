@@ -9,6 +9,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from database.schemas.models import RelationshipType
 
 class RegisterSourceRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=512)
@@ -83,10 +84,7 @@ class CreateConceptRequest(BaseModel):
 
 class AddRelationshipRequest(BaseModel):
     parent_name: str = Field(..., min_length=1)
-    relationship_type: str = Field(
-        ...,
-        description="regulates | controls | contains | requires | precedes | causes | part_of | related_to",
-    )
+    relationship_type: RelationshipType
     child_name: str = Field(..., min_length=1)
     weight: float = Field(default=1.0, ge=0.0, le=10.0)
     source_claim_id: Optional[str] = None

@@ -105,9 +105,8 @@ async def add_relationship(
 ):
     manager = KnowledgeGraphManager(session)
     try:
-        rel_type = RelationshipType(body.relationship_type)
         rel = await manager.add_relationship(
-            body.parent_name, rel_type, body.child_name,
+            body.parent_name, body.relationship_type, body.child_name,
             weight=body.weight,
             source_claim_id=body.source_claim_id,
         )
