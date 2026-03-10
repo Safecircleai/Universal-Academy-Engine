@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.requests import (
@@ -48,6 +49,11 @@ async def create_claim(
         )
     except ClaimLedgerError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except IntegrityError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Database integrity error: {exc.orig}",
+        )
     return ClaimResponse.model_validate(claim)
 
 
